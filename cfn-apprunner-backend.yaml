@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AppRunner Template for CloudFormation Demo.
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Production
+    ConstraintDescription: must be a prod or test    
+
+Mappings: 
+  BackendConfigMap:
+    Production:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+    Staging:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+    Dev:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+
+#Conditions: 
+
+Resources:
+  BackendAppRunner:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub ${StackPrefix}-BackendService
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn:
+            Fn::ImportValue: !Sub ${StackPrefix}-AppRunnerECRAccessRole-Arn 
+        AutoDeploymentsEnabled: true
+        ImageRepository:
+          ImageIdentifier: 
+            Fn::Join: 
+              - ""
+              - - Fn::ImportValue: !Sub ${StackPrefix}-BackendECRRepositoryUri
+                - ":latest"            
+          ImageRepositoryType: ECR            
+          ImageConfiguration:
+            Port: 8080                                    
+            RuntimeEnvironmentVariables:
+              - Name: ENV_TYPE
+                Value: !Ref EnvironmentType            
+      InstanceConfiguration:
+        Cpu: !FindInMap [BackendConfigMap, !Ref EnvironmentType, Cpu]
+        Memory: !FindInMap [BackendConfigMap, !Ref EnvironmentType, Memory]
+
+Outputs:  
+  BackendAppRunnerDomainName:
+    Description: Backend AppRunner DomainName
+    Value: !Sub https://${BackendAppRunner.ServiceUrl}
+    Export: 
+      Name: !Sub ${StackPrefix}-BackendService-DomainName
+  BackendServiceURI:
+    Description: Backend Service URL
+    Value: !Sub https://${BackendAppRunner.ServiceUrl}/backend/api/v1/users
+    Export: 
+      Name: !Sub ${StackPrefix}-BackendService-URI

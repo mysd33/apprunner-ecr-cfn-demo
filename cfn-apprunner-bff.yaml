@@ -1,0 +1,67 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AppRunner Template for CloudFormation Demo. Depends on cfn-apprunner-backend.yaml
+#Metadata: 
+
+Parameters: 
+  StackPrefix:
+    Description: Stack Resource Name Prefix
+    Type: String
+    Default: Demo
+  EnvironmentType:
+    Description: The environment type
+    Type: String
+    AllowedValues: ["Dev", "Staging", "Production"]
+    Default: Production
+    ConstraintDescription: must be a prod or test    
+
+
+Mappings: 
+  BffConfigMap:
+    Production:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+    Staging:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+    Dev:
+      "Memory" : 2 GB
+      "Cpu" : 1 vCPU
+
+#Conditions: 
+
+Resources: 
+  BffAppRunner:
+    Type: AWS::AppRunner::Service
+    Properties:
+      ServiceName: !Sub ${StackPrefix}-FrontendWebAppService
+      SourceConfiguration:
+        AuthenticationConfiguration:
+          AccessRoleArn:
+            Fn::ImportValue: !Sub ${StackPrefix}-AppRunnerECRAccessRole-Arn 
+        AutoDeploymentsEnabled: true
+        ImageRepository:
+          ImageIdentifier: 
+            Fn::Join: 
+              - ""
+              - - Fn::ImportValue: !Sub ${StackPrefix}-BffECRRepositoryUri
+                - ":latest"
+          ImageRepositoryType: ECR            
+          ImageConfiguration:
+            Port: 8080            
+            RuntimeEnvironmentVariables:
+              - Name: ENV_TYPE
+                Value: !Ref EnvironmentType
+              - Name: BACKEND_URL
+                Value: 
+                  Fn::ImportValue: !Sub ${StackPrefix}-BackendService-DomainName
+      InstanceConfiguration:
+        Cpu: !FindInMap [BffConfigMap, !Ref EnvironmentType, Cpu]
+        Memory: !FindInMap [BffConfigMap, !Ref EnvironmentType, Memory]
+
+Outputs:  
+  BffAppRunnerDomainName:
+    Description: Backend for Frontend AppRunner DomainName
+    Value: !GetAtt BffAppRunner.ServiceUrl
+  BffServiceURI:
+    Description: Backend for Frontend Service URL
+    Value: !Sub https://${BffAppRunner.ServiceUrl}/backend-for-frontend/index.html
