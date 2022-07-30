@@ -12,7 +12,7 @@ Parameters:
     Type: String
     Default: demo-backend-ci
   CacheS3Location:
-    Description: Artifact Location of S3 Bucket Name/Prefix
+    Description: Cache Location of S3 Bucket Name/Prefix
     Type: String
     Default: mysd33bucket123/cache
     

@@ -1,5 +1,5 @@
 AWSTemplateFormatVersion: 2010-09-09
-Description: AppRunner Template for CloudFormation Demo.
+Description: AppRunner Template for CloudFormation Demo. Depends on cfn-iam.yaml, cfn-ecr.yaml
 #Metadata: 
 
 Parameters: 

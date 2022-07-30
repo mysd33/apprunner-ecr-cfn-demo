@@ -28,7 +28,7 @@
 ### 1. IAMの作成
 ```sh
 aws cloudformation validate-template --template-body file://cfn-iam.yaml
-aws cloudformation create-stack --stack-name IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_IAM
+aws cloudformation create-stack --stack-name IAM-Stack --template-body file://cfn-iam.yaml --capabilities CAPABILITY_NAMED_IAM
 ```
 * CodePipeline、CodeBuildのArtifact用、キャッシュ用のS3バケット名を変えるには、それぞれのcnスタック作成時のコマンドでパラメータを指定する
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
@@ -72,7 +72,7 @@ aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --templa
     * 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」  
 
 ### 5. ECRへアプリケーションの最初のDockerイメージをプッシュ
-* CodePipelineの作成後、パイプラインが自動実行されるので、ビルド実行し、ECRにDockerイメージをプッシュさせる。
+* CodePipelineの作成後、パイプラインが自動実行されるので、ビルド実行し、ECRにDockerイメージがプッシュされる。
 
 ## AppRunner環境
 
@@ -81,7 +81,7 @@ aws cloudformation create-stack --stack-name Backend-CodePipeline-Stack --templa
 ```sh
 aws cloudformation validate-template --template-body file://cfn-apprunner-backend.yaml
 
-aws cloudformation create-stack --stack-name APPRUNNER-BG-Stack --template-body file://cfn-apprunner-backend.yaml
+aws cloudformation create-stack --stack-name APPRUNNER-BACKEND-Stack --template-body file://cfn-apprunner-backend.yaml
 ```
 
 * BFFアプリケーションの起動
@@ -93,7 +93,7 @@ aws cloudformation create-stack --stack-name APPRUNNER-BFF-Stack --template-body
 ### 2. APの実行確認
 * Backendアプリケーションの確認
   * ブラウザで「http://(AppRunnerのDNS名)/backend-for-frontend/index.html」を入力しフロントエンドAPの画面が表示される
-    * CloudFormationの「APPRUNNER-BG-Stack」スタックの出力「BackendServiceURI」のURLを参照
+    * CloudFormationの「APPRUNNER-BACKEND-Stack」スタックの出力「BackendServiceURI」のURLを参照
 
 * BFFアプリケーションの確認    
   * ブラウザで「http://(AppRunnerのDNS名)/backend-for-frontend/index.html」を入力しフロントエンドAPの画面が表示される
@@ -103,3 +103,19 @@ aws cloudformation create-stack --stack-name APPRUNNER-BFF-Stack --template-body
 * ソースコードの変更
   * 何らかのソースコードの変更を加えて、CodeCommitにプッシュする
   * CodePipelineのパイプラインが実行され、ECRに新しいDockerイメージがプッシュされることで、AppRunnerに新しいイメージがデプロイされることを確認する
+
+
+## ネストされたスタックテンプレート
+* 今までの構築手順を１つにまとめて実行したい場合は、以下のネストされたテンプレートを実行する。
+    * 実行前にCloudFormationの資材をアップロードするためのS3バケットを用意すること
+```sh
+#S3に資材をアップロード
+aws cloudformation package --template-file cfn-root-stack.yaml --s3-bucket (S3バケット名) --output-template-file cfn-artifact.yaml
+
+#ネストされたテンプレートの実行
+aws cloudformation deploy --template-file cfn-artifact.yaml --stack-name APPRUNNER-ROOT-STACK --capabilities CAPABILITY_NAMED_IAM
+```
+* CodeBuildのキャッシュ用のS3のパス（バケット名/プレフィックス）を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する
+「--parameters ParameterKey=CacheS3Location,ParameterValue=(パス名)」
+* CodePipelineのArtifact用のS3バケット名を変えるには、それぞれのcfnスタック作成時のコマンドでパラメータを指定する 「--parameters ParameterKey=ArtifactS3BucketName,ParameterValue=(バケット名)」
+* 実装が簡易のため、上記のパラメータ以外で、個々のテンプレートにある全パラメータの指定まで実装していないので、カスタマイズ修正要

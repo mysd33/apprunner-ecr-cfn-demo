@@ -41,6 +41,7 @@ Resources:
   AppRunnerECRAccessRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: AppRunnerECRAccessRole
       Path: /service-role/
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -58,6 +59,7 @@ Resources:
   CodeBuildRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: CodeBuildRole
       Path: /service-role/
       AssumeRolePolicyDocument:
         Version: '2012-10-17'
@@ -117,6 +119,7 @@ Resources:
   CodePipelineCloudWatchEventRole:
     Type: 'AWS::IAM::Role'
     Properties:
+      RoleName: CodePipelineCloudWatchEventRole
       AssumeRolePolicyDocument:
         Version: 2012-10-17
         Statement:
@@ -142,6 +145,7 @@ Resources:
   CodePipelineServiceRole:
     Type: AWS::IAM::Role
     Properties:
+      RoleName: CodePipelineServiceRole
       Path: /
       AssumeRolePolicyDocument: 
         Version: 2012-10-17

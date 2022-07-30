@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Root
+#Metadata: 
+
+Parameters:
+  ArtifactS3BucketName: 
+    Description: Artifact Location of S3 Bucket
+    Type: String
+    Default: mysd33bucket123
+  CacheS3Location:
+    Description: Cache Location of S3 Bucket Name/Prefix
+    Type: String
+    Default: mysd33bucket123/cache
+
+#Mappings: 
+
+#Conditions: 
+
+Resources: 
+  IAMStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-iam.yaml
+  ECRStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-ecr.yaml
+  BackendCodeBuildStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-backend-codebuild.yaml
+      Parameters:
+        CacheS3Location: !Ref CacheS3Location        
+    DependsOn:
+      - IAMStack
+      - ECRStack
+  BffCodeBuildStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-bff-codebuild.yaml
+      Parameters:
+        CacheS3Location: !Ref CacheS3Location
+    DependsOn:
+      - IAMStack
+      - ECRStack
+  BackendCodePipelineStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-backend-codepipeline.yaml
+      Parameters:
+        ArtifactS3BucketName: !Ref ArtifactS3BucketName
+    DependsOn:
+      - BackendCodeBuildStack      
+  BffCodePipelineStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-bff-codepipeline.yaml      
+      Parameters:
+        ArtifactS3BucketName: !Ref ArtifactS3BucketName
+    DependsOn:      
+      - BffCodeBuildStack      
+  AppRunnerBackendStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-apprunner-backend.yaml
+    DependsOn:      
+      - IAMStack
+      - ECRStack        
+  AppRunnerBffStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: cfn-apprunner-bff.yaml     
+    DependsOn:
+      - IAMStack
+      - ECRStack
+      - AppRunnerBackendStack
+Outputs:
+  BackendServiceURI:
+    Description: Backend Service URL
+    Value: !GetAtt AppRunnerBackendStack.Outputs.BackendServiceURI
+  BffServiceURI:
+    Description: Backend for Frontend Service URL
+    Value: !GetAtt AppRunnerBffStack.Outputs.BffServiceURI

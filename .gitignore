@@ -1,2 +1,3 @@
 *.bkp
 *.dtmp
+cfn-artifact.yaml
